@@ -1,0 +1,78 @@
+% Chapter 2
+
+\chapter{Supported Methods and Materials} % Main chapter title
+
+\label{Chapter2} % For referencing the chapter elsewhere, use \ref{Chapter1} 
+
+\setlength{\parindent}{0pt}
+%----------------------------------------------------------------------------------------
+
+\section{Reinforcement Learning Theory and Methods}
+Deep Reinforcement Learning is a subfield of machine learning that combines reinforcement learning (RL) and deep learning. Deep RL incorporates deep learning into the solution, allowing agents to make decisions from unstructured input data without manual engineering of the state space.Deep RL algorithms are able to take in very large inputs (e.g. every pixel rendered to the screen in a video game) and decide what actions to perform to optimize an objective (eg. maximizing the game score). Deep reinforcement learning has been used for a diverse set of applications including but not limited to robotics, video games, natural language processing, computer vision, education, transportation, finance and healthcare. \\
+Various techniques exist to train policies to solve tasks with deep reinforcement learning algorithms, each having their own benefits. At the highest level, there is a distinction between model-based and model-free reinforcement learning, which refers to whether the algorithm attempts to learn a forward model of the environment dynamics.
+\subsection{Optimization Methods}
+\subsubsection{Proximal Policy Optimization}
+Proximal Policy Optimization (PPO) is an on-policy algorithm which can be used for environments with either discrete or continuous action spaces. There are two primary variants of PPO: PPO-Penalty and PPO-Clip.Here, we’ll focus only on PPO-Clip.\\
+\textbf{PPO-Clip} doesn’t have a KL-divergence term in the objective and doesn’t have a constraint at all. Instead relies on specialized clipping in the objective function to remove incentives for the new policy to get far from the old policy.\\
+
+\textbf{Key Equations} \\
+PPO-clip updates policies via
+\begin{align*}
+    \theta_{k+1}=arg\max_\theta{\ \mathbf{E}_{s,a\sim\pi_{\theta_k}}}\left[L\left(s,a,\theta_k,\theta\right)\right],
+\end{align*}
+typically taking multiple steps of (usually minibatch) SGD to maximize the objective. Here $L$ is given by
+\begin{align*}
+    L\left(s,a,\theta_k,\theta\right)=min \Big(\frac{\pi_{\theta}(a|s)}{\pi_{\theta_k}(a|s)}A^{\pi_{\theta_k}}(s|a),g(\epsilon,A^{\pi_{\theta_k}}(s|a)) \Big) ,
+\end{align*}
+where 
+\begin{align*}
+    g(\epsilon,A)=\left\{
+    \begin{aligned}
+        (1+\epsilon)A,\; A\geq 0  \\
+        (1-\epsilon)A,\; A\leq 0   
+    \end{aligned}
+\right.
+\end{align*}
+\textbf{Advantage is positive: }Suppose the advantage for that state-action pair is positive, in which case its contribution to the objective reduces to
+\begin{align*}
+    L\left(s,a,\theta_k,\theta\right)=min\Big(\frac{\pi_{\theta}(a|s)}{\pi_{\theta_k}(a|s)}A^{\pi_{\theta_k}}(s|a),(1+\epsilon)\Big)A^{\pi_{\theta_k}}(s|a) ,
+\end{align*}
+\textbf{Advantage is negative:} Suppose the advantage for that state-action pair is negative, in which case its contribution to the objective reduces to
+\begin{align*}
+    L\left(s,a,\theta_k,\theta\right)=min \Big(\frac{\pi_{\theta}(a|s)}{\pi_{\theta_k}(a|s)}A^{\pi_{\theta_k}}(s|a),(1-\epsilon)\Big)A^{\pi_{\theta_k}}(s|a) ,
+\end{align*}
+
+PPO trains a stochastic policy in an on-policy way. This means that it explores by sampling actions according to the latest version of its stochastic policy. The amount of randomness in action selection depends on both initial conditions and the training procedure. Over the course of training, the policy typically becomes progressively less random, as the update rule encourages it to exploit rewards that it has already found. This may cause the policy to get trapped in local optima.
+\subsubsection{Soft Actor-Critic Optimization}
+Soft Actor Critic (SAC) is an algorithm that optimizes a stochastic policy in an off-policy way, forming a bridge between stochastic policy optimization and DDPG-style approaches. A central feature of SAC is entropy regularization. The policy is trained to maximize a trade-off between expected return and entropy, a measure of randomness in the policy. This has a close connection to the exploration-exploitation trade-off: increasing entropy results in more exploration, which can accelerate learning later on. It can also prevent the policy from prematurely converging to a bad local optimum.\\
+\textbf{Key Equations}\\
+Let $x$ be a random variable with probability mass or density function $P$. The entropy $H$ of $x$ is computed from its distribution $P$ according to
+\begin{align*}
+    H(P)=\mathbf{E}_{x\sim P}[-logP(x)].
+\end{align*}
+In entropy-regularized reinforcement learning, the agent gets a bonus reward at each time step proportional to the entropy of the policy at that timestep. This changes the RL problem to:
+\begin{align*}
+    \pi^{\ast}=arg \max_{\pi}\mathbf{E}_{\tau \sim \pi}\left[\sum^{\infty}_{t=0} \gamma^t \Big (R(s_t,a_t,s_{t+1})+\alpha H(\pi(\cdot|s_t))  \Big) \right]
+\end{align*}
+where $\alpha > 0$ is the trade-off coefficient.We can now define the slightly-different value functions in this setting. $ V^{\pi} $ is changed to include the entropy bonuses from every timestep:
+\begin{align*}
+     V^{\pi}(s)= \mathbf{E}_{\tau \sim \pi}\left[\sum^{\infty}_{t=0} \gamma^t \Big (R(s_t,a_t,s_{t+1})+\alpha H(\pi(\cdot|s_t))  \Big)|s_0=s \right]
+\end{align*}
+$Q^{\pi}$ is changed to include the entropy bonuses from every timestep except the first:
+\begin{align*}
+     Q^{\pi}(s,a)= \mathbf{E}_{\tau \sim \pi}\left[\sum^{\infty}_{t=0} \gamma^t \Big (R(s_t,a_t,s_{t+1})+\alpha H(\pi(\cdot|s_t))  \Big)|s_0=s,a_0=a \right]
+\end{align*}
+With these definitions, $V^{\pi}$ and $Q^{\pi}$ are connected by:
+\begin{align*}
+     V^{\pi}(s)= \mathbf{E}_{\tau \sim \pi}[Q^{\pi}(s,a)]+\alpha H(\pi(\cdot|s_t))
+\end{align*}
+and the Bellman equation for $Q^{\pi}$ is
+\begin{align*}
+      Q^{\pi}(s,a)=\mathbf{E}_{s' \sim P}[R(s,a,s')+\gamma V^{\pi}(s')]
+\end{align*}
+SAC trains a stochastic policy with entropy regularization, and explores in an on-policy way. The entropy regularization coefficient $\alpha$ explicitly controls the explore-exploit tradeoff, with higher $\alpha$ corresponding to more exploration, and lower $\alpha$ corresponding to more exploitation. The right coefficient (the one which leads to the stablest / highest-reward learning) may vary from environment to environment, and could require careful tuning.
+\section{Unity 3D Engine}
+Unity is a cross-platform game engine developed by Unity Technologies, first announced and released in June 2005 at Apple Inc.'s Worldwide Developers Conference as a Mac OS X-exclusive game engine. As of 2018, the engine had been extended to support more than 25 platforms. The engine can be used to create three-dimensional, two-dimensional, virtual reality, and augmented reality games, as well as simulations and other experiences. The engine has been adopted by industries outside video gaming, such as film, automotive, architecture, engineering and construction. Unity gives users the ability to create games and experiences in both 2D and 3D, and the engine offers a primary scripting API in C$\sharp$, for both the Unity editor in the form of plugins, and games themselves, as well as drag and drop functionality. \\ 
+We generated random routes and obstacles' locations every time. And assigned a series of sensors(ray casting sensors, trigger collider sensors, and spherical sensors) to the car agent made it agile to drive.
+\subsection{Unity Machine Learning Agents Toolkit (ML-Agents)}
+The Unity Machine Learning Agents Toolkit (ML-Agents) is an open-source project that enables games and simulations to serve as environments for training intelligent agents. The author provide implementations (based on PyTorch) of state-of-the-art algorithms to enable game developers and hobbyists to easily train intelligent agents for 2D, 3D and VR/AR games. Researchers can also use the provided simple-to-use Python API to train Agents using reinforcement learning, imitation learning, neuroevolution, or any other methods. These trained agents can be used for multiple purposes, including controlling NPC behavior (in a variety of settings such as multi-agent and adversarial), automated testing of game builds and evaluating different game design decisions pre-release. The ML-Agents Toolkit is mutually beneficial for both game developers and AI researchers as it provides a central platform where advances in AI can be evaluated on Unity’s rich environments and then made accessible to the wider research and game developer communities.
